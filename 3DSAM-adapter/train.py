@@ -87,7 +87,7 @@ def main():
         rand_crop_spatial_size=args.rand_crop_size,
         num_worker = args.num_worker
     )
-    sam = sam_model_registry["vit_b"](checkpoint="ckpt/sam_vit_b_01ec64.pth")
+    sam = sam_model_registry["vit_b"](checkpoint="/data/users/gcordoba/ckpt/sam_vit_b_01ec64.pth")
 
     mask_generator = SamAutomaticMaskGenerator(sam)
     img_encoder = ImageEncoderViT_3d(
