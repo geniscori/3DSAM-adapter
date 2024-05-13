@@ -236,7 +236,7 @@ def main():
 
             logger.info(
                 " Case {} - Dice {:.6f} | NSD {:.6f} | IoU {:.6f}".format(
-                    test_data.dataset.img_dict[idx], loss.item(), nsd, iou
+                    test_data.dataset.img_dict[idx], loss.item(), nsd, iou.item()
                 )) # +01+
 
         if(args.conf_inter == "cf"): # +01+
