@@ -1,3 +1,9 @@
+"""
+Changes made:
+    +01+ : add IoU and CI
+
+"""
+
 from dataset.datasets import load_data_volume
 import argparse
 import numpy as np
@@ -13,6 +19,8 @@ import os
 from utils.util import setup_logger
 import surface_distance
 from surface_distance import metrics
+from monai.metrics import compute_meandice, compute_hausdorff_distance # +01+
+import scipy.stats as st # +01+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -126,6 +134,11 @@ def main():
 
     patch_size = args.rand_crop_size[0]
 
+    def compute_statistics(values): # +01+
+        mean_val = np.mean(values)
+        conf_interval = st.t.interval(0.95, len(values) - 1, loc=mean_val, scale=st.sem(values))
+        return mean_val, conf_interval
+
     def model_predict(img, prompt, img_encoder, prompt_encoder, mask_decoder):
         out = F.interpolate(img.float(), scale_factor=512 / patch_size, mode='trilinear')
         input_batch = out[0].transpose(0, 1)
@@ -151,6 +164,7 @@ def main():
     with torch.no_grad():
         loss_summary = []
         loss_nsd = []
+        iou_summary = [] # +01+
         for idx, (img, seg, spacing) in enumerate(test_data):
             seg = seg.float()
             prompt = F.interpolate(seg[None, :, :, :, :], img.shape[2:], mode="nearest")[0]
@@ -208,13 +222,25 @@ def main():
                                                              spacing_mm=spacing[0].numpy())
             nsd = metrics.compute_surface_dice_at_tolerance(ssd, args.tolerance)  # kits
             loss_nsd.append(nsd)
+
+            iou = compute_meandice(masks.float(), seg.float(), include_background=False)  # +01+
+            iou_summary.append(iou.item())  # +01+
+
             logger.info(
                 " Case {} - Dice {:.6f} | NSD {:.6f}".format(
                     test_data.dataset.img_dict[idx], loss.item(), nsd
                 ))
-        logger.info("- Test metrics Dice: " + str(np.mean(loss_summary)))
-        logger.info("- Test metrics NSD: " + str(np.mean(loss_nsd)))
 
+        dice_mean, dice_conf = compute_statistics(loss_summary) # +01+
+        nsd_mean, nsd_conf = compute_statistics(loss_nsd) # +01+
+        iou_mean, iou_conf = compute_statistics(iou_summary) # +01+
+
+        logger.info(f"- Test metrics Dice: Mean {dice_mean:.6f}, CI {dice_conf}") # +01+
+        logger.info(f"- Test metrics NSD: Mean {nsd_mean:.6f}, CI {nsd_conf}") # +01+
+        logger.info(f"- Test metrics IoU: Mean {iou_mean:.6f}, CI {iou_conf}") # +01+
+
+        #logger.info("- Test metrics Dice: " + str(np.mean(loss_summary)) + str())
+        #logger.info("- Test metrics NSD: " + str(np.mean(loss_nsd)))
 
 if __name__ == "__main__":
     main()
