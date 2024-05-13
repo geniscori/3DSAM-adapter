@@ -251,9 +251,9 @@ def main():
             dice_mean, dice_moe = compute_statistics(loss_summary)
             nsd_mean, nsd_moe = compute_statistics(loss_nsd)
             iou_mean, iou_moe = compute_statistics(iou_summary)
-            logger.info(f"- Test metrics Dice: {dice_mean:.6f} ± {dice_moe:.6f}")
-            logger.info(f"- Test metrics NSD: {nsd_mean:.6f} ± {nsd_moe:.6f}")
-            logger.info(f"- Test metrics IoU: {iou_mean:.6f} ± {iou_moe:.6f}")
+            logger.info(f"- Test metrics Dice: {dice_mean:.6f} pm {dice_moe:.6f}")
+            logger.info(f"- Test metrics NSD: {nsd_mean:.6f} pm {nsd_moe:.6f}")
+            logger.info(f"- Test metrics IoU: {iou_mean:.6f} pm {iou_moe:.6f}")
 
 if __name__ == "__main__":
     main()
