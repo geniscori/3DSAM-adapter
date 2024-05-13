@@ -1,6 +1,6 @@
 """
 Changes made:
-    +01+ : add IoU and CI
+    +01+ : add CI
     +02+ : add error margin with a 95% confidence certainty level for losses
 
 """
@@ -20,7 +20,6 @@ import os
 from utils.util import setup_logger
 import surface_distance
 from surface_distance import metrics
-from monai.metrics import compute_meandice, compute_hausdorff_distance # +01+
 import scipy.stats as st # +01+
 
 def main():
@@ -231,29 +230,22 @@ def main():
             nsd = metrics.compute_surface_dice_at_tolerance(ssd, args.tolerance)  # kits
             loss_nsd.append(nsd)
 
-            iou = compute_meandice(masks.float(), seg.float(), include_background=False)  # +01+
-            iou_summary.append(iou.item())  # +01+
-
             logger.info(
-                " Case {} - Dice {:.6f} | NSD {:.6f} | IoU {:.6f}".format(
-                    test_data.dataset.img_dict[idx], loss.item(), nsd, iou.item()
-                )) # +01+
+                " Case {} - Dice {:.6f} | NSD {:.6f}".format(
+                    test_data.dataset.img_dict[idx], loss.item(), nsd
+                ))
 
         if(args.conf_inter == "cf"): # +01+
             dice_mean, dice_conf = compute_statistics(loss_summary)
             nsd_mean, nsd_conf = compute_statistics(loss_nsd)
-            iou_mean, iou_conf = compute_statistics(iou_summary)
             logger.info(f"- Test metrics Dice: Mean {dice_mean:.6f}, CI {dice_conf}")
             logger.info(f"- Test metrics NSD: Mean {nsd_mean:.6f}, CI {nsd_conf}")
-            logger.info(f"- Test metrics IoU: Mean {iou_mean:.6f}, CI {iou_conf}")
 
         else: # +02+
             dice_mean, dice_moe = compute_statistics(loss_summary)
             nsd_mean, nsd_moe = compute_statistics(loss_nsd)
-            iou_mean, iou_moe = compute_statistics(iou_summary)
             logger.info(f"- Test metrics Dice: {dice_mean:.6f} pm {dice_moe:.6f}")
             logger.info(f"- Test metrics NSD: {nsd_mean:.6f} pm {nsd_moe:.6f}")
-            logger.info(f"- Test metrics IoU: {iou_mean:.6f} pm {iou_moe:.6f}")
 
 if __name__ == "__main__":
     main()
