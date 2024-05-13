@@ -143,7 +143,7 @@ def main():
     def compute_statistics(values): # +02+
         mean_val = np.mean(values)
         sem = st.sem(values)
-        moe = sem * st.t.ppf((1 + 0.95) / 2., len(values) - 1)
+        moe = float(sem * st.t.ppf((1 + 0.95) / 2., len(values) - 1))
         return mean_val, moe
 
     def model_predict(img, prompt, img_encoder, prompt_encoder, mask_decoder):
