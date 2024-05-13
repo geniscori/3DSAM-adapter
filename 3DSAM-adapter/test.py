@@ -212,8 +212,8 @@ def main():
                 " Case {} - Dice {:.6f} | NSD {:.6f}".format(
                     test_data.dataset.img_dict[idx], loss.item(), nsd
                 ))
-        logging.info("- Test metrics Dice: " + str(np.mean(loss_summary)))
-        logging.info("- Test metrics NSD: " + str(np.mean(loss_nsd)))
+        logger.info("- Test metrics Dice: " + str(np.mean(loss_summary)))
+        logger.info("- Test metrics NSD: " + str(np.mean(loss_nsd)))
 
 
 if __name__ == "__main__":
