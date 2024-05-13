@@ -1,6 +1,7 @@
 """
 Changes made:
     +01+ : add IoU and CI
+    +02+ : add error margin with a 95% confidence certainty level for losses
 
 """
 
@@ -51,6 +52,12 @@ def main():
         "--num_prompts",
         default=1,
         type=int,
+    )
+    parser.add_argument( # +02+
+        "--conf_inter",
+        default="moe",
+        type=str,
+        choices=["moe","ci"]
     )
     parser.add_argument("-bs", "--batch_size", default=1, type=int)
     parser.add_argument("--num_classes", default=2, type=int)
@@ -134,10 +141,11 @@ def main():
 
     patch_size = args.rand_crop_size[0]
 
-    def compute_statistics(values): # +01+
+    def compute_statistics(values): # +02+
         mean_val = np.mean(values)
-        conf_interval = st.t.interval(0.95, len(values) - 1, loc=mean_val, scale=st.sem(values))
-        return mean_val, conf_interval
+        sem = st.sem(values)
+        moe = sem * st.t.ppf((1 + 0.95) / 2., len(values) - 1)
+        return mean_val, moe
 
     def model_predict(img, prompt, img_encoder, prompt_encoder, mask_decoder):
         out = F.interpolate(img.float(), scale_factor=512 / patch_size, mode='trilinear')
@@ -227,20 +235,25 @@ def main():
             iou_summary.append(iou.item())  # +01+
 
             logger.info(
-                " Case {} - Dice {:.6f} | NSD {:.6f}".format(
-                    test_data.dataset.img_dict[idx], loss.item(), nsd
-                ))
+                " Case {} - Dice {:.6f} | NSD {:.6f} | IoU {:.6f}".format(
+                    test_data.dataset.img_dict[idx], loss.item(), nsd, iou
+                )) # +01+
 
-        dice_mean, dice_conf = compute_statistics(loss_summary) # +01+
-        nsd_mean, nsd_conf = compute_statistics(loss_nsd) # +01+
-        iou_mean, iou_conf = compute_statistics(iou_summary) # +01+
+        if(args.conf_inter == "cf"): # +01+
+            dice_mean, dice_conf = compute_statistics(loss_summary)
+            nsd_mean, nsd_conf = compute_statistics(loss_nsd)
+            iou_mean, iou_conf = compute_statistics(iou_summary)
+            logger.info(f"- Test metrics Dice: Mean {dice_mean:.6f}, CI {dice_conf}")
+            logger.info(f"- Test metrics NSD: Mean {nsd_mean:.6f}, CI {nsd_conf}")
+            logger.info(f"- Test metrics IoU: Mean {iou_mean:.6f}, CI {iou_conf}")
 
-        logger.info(f"- Test metrics Dice: Mean {dice_mean:.6f}, CI {dice_conf}") # +01+
-        logger.info(f"- Test metrics NSD: Mean {nsd_mean:.6f}, CI {nsd_conf}") # +01+
-        logger.info(f"- Test metrics IoU: Mean {iou_mean:.6f}, CI {iou_conf}") # +01+
-
-        #logger.info("- Test metrics Dice: " + str(np.mean(loss_summary)) + str())
-        #logger.info("- Test metrics NSD: " + str(np.mean(loss_nsd)))
+        else: # +02+
+            dice_mean, dice_moe = compute_statistics(loss_summary)
+            nsd_mean, nsd_moe = compute_statistics(loss_nsd)
+            iou_mean, iou_moe = compute_statistics(iou_summary)
+            logger.info(f"- Test metrics Dice: {dice_mean:.6f} ± {dice_moe:.6f}")
+            logger.info(f"- Test metrics NSD: {nsd_mean:.6f} ± {nsd_moe:.6f}")
+            logger.info(f"- Test metrics IoU: {iou_mean:.6f} ± {iou_moe:.6f}")
 
 if __name__ == "__main__":
     main()
