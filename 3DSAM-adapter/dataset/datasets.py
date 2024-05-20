@@ -7,6 +7,16 @@ import nibabel as nib
 import torch.nn.functional as F
 from .base_dataset import BaseVolumeDataset
 
+class COCOImages(BaseVolumeDataset):
+    def _set_dataset_stat(self):
+        # org load shape: d, h, w
+        self.intensity_range = (0, 255)
+        self.target_spacing = (1, 1, 1)
+        self.global_mean = 127.5
+        self.global_std = 127.5
+        self.spatial_index = [2, 1, 0]  # index used to convert to DHW
+        self.do_dummy_2D = False
+        self.target_class = 1  # si segmentació binària
 
 class KiTSVolumeDataset(BaseVolumeDataset):
     def _set_dataset_stat(self):
@@ -61,6 +71,7 @@ DATASET_DICT = {
     "lits": LiTSVolumeDataset,
     "pancreas": PancreasVolumeDataset,
     "colon": ColonVolumeDataset,
+    "cocoimages": COCOImages,
 }
 
 

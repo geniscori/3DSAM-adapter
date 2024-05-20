@@ -17,7 +17,7 @@ from surface_distance import metrics
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--data", default=None, type=str, choices=["kits", "pancreas", "lits", "colon"]
+        "--data", default=None, type=str, choices=["kits", "pancreas", "lits", "colon","cocoimages"]
     )
     parser.add_argument(
         "--snapshot_path",
@@ -60,7 +60,7 @@ def main():
         file = "best.pth.tar"
     device = args.device
     if args.rand_crop_size == 0:
-        if args.data in ["colon", "pancreas", "lits", "kits"]:
+        if args.data in ["colon", "pancreas", "lits", "kits", "cocoimages"]:
             args.rand_crop_size = (128, 128, 128)
     else:
         if len(args.rand_crop_size) == 1:
