@@ -20,7 +20,7 @@ from utils.util import setup_logger
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--data", default=None, type=str, choices=["kits", "pancreas", "lits", "colon"]
+        "--data", default=None, type=str, choices=["kits", "pancreas", "lits", "colon", "coco_data"]
     )
     parser.add_argument(
         "--snapshot_path",
@@ -54,7 +54,7 @@ def main():
     args = parser.parse_args()
     device = args.device
     if args.rand_crop_size == 0:
-        if args.data in ["pancreas", "lits", "colon", "kits"]:
+        if args.data in ["pancreas", "lits", "colon", "kits", "coco_data"]:
             args.rand_crop_size = (128, 128, 128)
     else:
         if len(args.rand_crop_size) == 1:
@@ -305,4 +305,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

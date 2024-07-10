@@ -1,10 +1,3 @@
-"""
-Changes made:
-    +01+ : add CI
-    +02+ : add error margin with a 95% confidence certainty level for losses
-
-"""
-
 from dataset.datasets import load_data_volume
 import argparse
 import numpy as np
@@ -20,12 +13,12 @@ import os
 from utils.util import setup_logger
 import surface_distance
 from surface_distance import metrics
-import scipy.stats as st # +01+
+import nibabel as nib
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--data", default=None, type=str, choices=["kits", "pancreas", "lits", "colon"]
+        "--data", default=None, type=str, choices=["kits", "pancreas", "lits", "colon","coco_data"]
     )
     parser.add_argument(
         "--snapshot_path",
@@ -52,12 +45,6 @@ def main():
         default=1,
         type=int,
     )
-    parser.add_argument( # +02+
-        "--conf_inter",
-        default="moe",
-        type=str,
-        choices=["moe","ci"]
-    )
     parser.add_argument("-bs", "--batch_size", default=1, type=int)
     parser.add_argument("--num_classes", default=2, type=int)
     parser.add_argument("--num_worker", default=6, type=int)
@@ -74,7 +61,7 @@ def main():
         file = "best.pth.tar"
     device = args.device
     if args.rand_crop_size == 0:
-        if args.data in ["colon", "pancreas", "lits", "kits"]:
+        if args.data in ["colon", "pancreas", "lits", "kits", "coco_data"]:
             args.rand_crop_size = (128, 128, 128)
     else:
         if len(args.rand_crop_size) == 1:
@@ -140,12 +127,6 @@ def main():
 
     patch_size = args.rand_crop_size[0]
 
-    def compute_statistics(values): # +02+
-        mean_val = np.mean(values)
-        sem = st.sem(values)
-        moe = float(sem * st.t.ppf((1 + 0.95) / 2., len(values) - 1))
-        return mean_val, moe
-
     def model_predict(img, prompt, img_encoder, prompt_encoder, mask_decoder):
         out = F.interpolate(img.float(), scale_factor=512 / patch_size, mode='trilinear')
         input_batch = out[0].transpose(0, 1)
@@ -168,10 +149,13 @@ def main():
         masks = masks.permute(0, 1, 4, 2, 3)
         return masks
 
+    masks_dir = os.path.join(args.snapshot_path, "masks_test")
+    if not os.path.exists(masks_dir):
+        os.makedirs(masks_dir)
+
     with torch.no_grad():
         loss_summary = []
         loss_nsd = []
-        iou_summary = [] # +01+
         for idx, (img, seg, spacing) in enumerate(test_data):
             seg = seg.float()
             prompt = F.interpolate(seg[None, :, :, :, :], img.shape[2:], mode="nearest")[0]
@@ -229,23 +213,20 @@ def main():
                                                              spacing_mm=spacing[0].numpy())
             nsd = metrics.compute_surface_dice_at_tolerance(ssd, args.tolerance)  # kits
             loss_nsd.append(nsd)
-
             logger.info(
                 " Case {} - Dice {:.6f} | NSD {:.6f}".format(
                     test_data.dataset.img_dict[idx], loss.item(), nsd
                 ))
 
-        if(args.conf_inter == "cf"): # +01+
-            dice_mean, dice_conf = compute_statistics(loss_summary)
-            nsd_mean, nsd_conf = compute_statistics(loss_nsd)
-            logger.info(f"- Test metrics Dice: Mean {dice_mean:.6f}, CI {dice_conf}")
-            logger.info(f"- Test metrics NSD: Mean {nsd_mean:.6f}, CI {nsd_conf}")
+            # Save the predicted mask as a NIfTI file
+            mask_nifti = masks.cpu().numpy().astype(np.uint8)[0, 0]
+            case_name = test_data.dataset.img_dict[idx].split('/')[-1].replace('.nii.gz', '')
+            mask_path = os.path.join(masks_dir, f'mask_{case_name}.nii.gz')
+            nib.save(nib.Nifti1Image(mask_nifti, np.eye(4)), mask_path)
 
-        else: # +02+
-            dice_mean, dice_moe = compute_statistics(loss_summary)
-            nsd_mean, nsd_moe = compute_statistics(loss_nsd)
-            logger.info(f"- Test metrics Dice: {dice_mean:.6f} pm {dice_moe:.6f}")
-            logger.info(f"- Test metrics NSD: {nsd_mean:.6f} pm {nsd_moe:.6f}")
+        logging.info("- Test metrics Dice: " + str(np.mean(loss_summary)))
+        logging.info("- Test metrics NSD: " + str(np.mean(loss_nsd)))
+
 
 if __name__ == "__main__":
     main()
