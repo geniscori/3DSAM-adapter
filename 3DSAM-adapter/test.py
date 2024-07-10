@@ -13,11 +13,12 @@ import os
 from utils.util import setup_logger
 import surface_distance
 from surface_distance import metrics
+import nibabel as nib
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--data", default=None, type=str, choices=["kits", "pancreas", "lits", "colon","cocoimages"]
+        "--data", default=None, type=str, choices=["kits", "pancreas", "lits", "colon","coco_data"]
     )
     parser.add_argument(
         "--snapshot_path",
@@ -60,7 +61,7 @@ def main():
         file = "best.pth.tar"
     device = args.device
     if args.rand_crop_size == 0:
-        if args.data in ["colon", "pancreas", "lits", "kits", "cocoimages"]:
+        if args.data in ["colon", "pancreas", "lits", "kits", "coco_data"]:
             args.rand_crop_size = (128, 128, 128)
     else:
         if len(args.rand_crop_size) == 1:
@@ -148,6 +149,10 @@ def main():
         masks = masks.permute(0, 1, 4, 2, 3)
         return masks
 
+    masks_dir = os.path.join(args.snapshot_path, "masks_test")
+    if not os.path.exists(masks_dir):
+        os.makedirs(masks_dir)
+
     with torch.no_grad():
         loss_summary = []
         loss_nsd = []
@@ -212,6 +217,13 @@ def main():
                 " Case {} - Dice {:.6f} | NSD {:.6f}".format(
                     test_data.dataset.img_dict[idx], loss.item(), nsd
                 ))
+
+            # Save the predicted mask as a NIfTI file
+            mask_nifti = masks.cpu().numpy().astype(np.uint8)[0, 0]
+            case_name = test_data.dataset.img_dict[idx].split('/')[-1].replace('.nii.gz', '')
+            mask_path = os.path.join(masks_dir, f'mask_{case_name}.nii.gz')
+            nib.save(nib.Nifti1Image(mask_nifti, np.eye(4)), mask_path)
+
         logging.info("- Test metrics Dice: " + str(np.mean(loss_summary)))
         logging.info("- Test metrics NSD: " + str(np.mean(loss_nsd)))
 

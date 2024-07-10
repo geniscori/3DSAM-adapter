@@ -170,6 +170,8 @@ class BaseVolumeDataset(Dataset):
             img_aug, seg_aug = trans_dict["image"], trans_dict["label"]
         else:
             trans_dict = self.transforms({"image": img, "label": seg})
+            if isinstance(trans_dict, list):
+                trans_dict = trans_dict[0]
             img_aug, seg_aug = trans_dict["image"], trans_dict["label"]
         seg_aug = seg_aug.squeeze()
 

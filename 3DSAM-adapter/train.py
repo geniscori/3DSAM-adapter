@@ -20,7 +20,7 @@ from utils.util import setup_logger
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--data", default=None, type=str, choices=["kits", "pancreas", "lits", "colon", "cocoimages"]
+        "--data", default=None, type=str, choices=["kits", "pancreas", "lits", "colon", "coco_data"]
     )
     parser.add_argument(
         "--snapshot_path",
@@ -54,7 +54,7 @@ def main():
     args = parser.parse_args()
     device = args.device
     if args.rand_crop_size == 0:
-        if args.data in ["pancreas", "lits", "colon", "kits", "cocoimages"]:
+        if args.data in ["pancreas", "lits", "colon", "kits", "coco_data"]:
             args.rand_crop_size = (128, 128, 128)
     else:
         if len(args.rand_crop_size) == 1:
@@ -87,7 +87,7 @@ def main():
         rand_crop_spatial_size=args.rand_crop_size,
         num_worker = args.num_worker
     )
-    sam = sam_model_registry["vit_b"](checkpoint="ckpt/sam_vit_b_01ec64.pth")
+    sam = sam_model_registry["vit_b"](checkpoint="/data/users/gcordoba/sam_vit_b_01ec64.pth")
 
     mask_generator = SamAutomaticMaskGenerator(sam)
     img_encoder = ImageEncoderViT_3d(
