@@ -1,5 +1,7 @@
 # 3DSAM-adapter: Holistic Adaptation of SAM from 2D to 3D for Promptable Medical Image Segmentation
 
+Some changes have been done to the dataloader to adapt it to other volumes; just for testing and analyzing.
+
 Implementation for the paper [3DSAM-adapter: Holistic Adaptation of SAM from 2D to 3D for Promptable Medical Image Segmentation](https://arxiv.org/pdf/2306.13465.pdf)
 by Shizhan Gong, [Yuan Zhong](https://yzrealm.com/), Wenao Ma, Jinpeng Li, Zhao Wang, Jingyang Zhang, [Pheng-Ann Heng](https://www.cse.cuhk.edu.hk/~pheng/), and [Qi Dou](https://www.cse.cuhk.edu.hk/~qdou/index.html).
 ![Alt text](asset/teaser.png?raw=true "Title")
